@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="leCaMXoop0F3FfzLU1MNSp">
+<head data-page-node-id="HoD57jTh3dNvg64U8zF9ZM">
+<meta charset="UTF-8" data-page-node-id="RpBqpwa9NmvkOr3FVdA27v">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="dhW1UXo5XZaADH4NvEBNZ3">
+<title>组队广场 · WeekendGo</title>
+<link rel="stylesheet" href="css/style.css" data-page-node-id="1TiRZ4oVQvhFtgk2GtVN6i">
+</head>
+<body data-page-node-id="FvzOVUesjLJcaRPVKVUnQp">
+<nav class="nav" data-page-node-id="aLC7yTGSVi0cLYmSrM9GZw">
+  <div class="wrap" data-page-node-id="BXA5dsYeUu4SGbqe8GKfGu">
+    <a class="logo" href="index.html" data-page-node-id="Rv0Efk4BdWCCzHASxs3kkU"><span class="dot" data-page-node-id="cUCxb6CVF7fOiY8P5dGtaT">🧭</span>WeekendGo</a>
+    <div class="links" data-page-node-id="FLirKZ26Dre2uQ6HsoCTrR">
+      <a href="index.html" data-page-node-id="RXngEh0hlODMv6CYFkqB7z">首页</a>
+      <a href="explore.html" data-page-node-id="dlXMD5FoMHCD4hH8CtrIc2">探索</a>
+      <a class="active" href="teamup.html" data-page-node-id="z5kcSiEdJ2pMy5F666bYHN">组队</a>
+      <a href="profile.html" data-page-node-id="wZ6kyaNjSgdkbQWzJlDmEA">我的</a>
+    </div>
+    <a class="me" href="profile.html" data-page-node-id="m8WSdH3DlpAFjLmqaW6VRr">🙋</a>
+  </div>
+</nav>
+
+<div class="wrap" data-page-node-id="8xSJ5AtFQlGuX0H2deEDXf">
+  <section class="hero" data-page-node-id="ligcFQl90Yor69Z5Q74jd5"><h1 data-page-node-id="R5VFJGUeMqm651NqWy9fvf">👯 组队广场</h1>
+    <p data-page-node-id="WCedPDNqDje6QtdNMhqgWf">临时约不到同伴？在这发个帖，缺几个人一目了然，拼一场周末活动。</p></section>
+
+  <div style="display:flex;gap:10px;margin:18px 0" data-page-node-id="oHBCQ8MbBqGnkO0OQOAp3U">
+    <select id="filterType" style="font-family:inherit;font-size:13px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fafbff" data-page-node-id="GKZHBtb9tWZrOe6pBtQyAO">
+      <option value="" data-page-node-id="gBfQv9dSoPc4UiaeJTVWmX">全部活动类型</option>
+      <option value="exhibition" data-page-node-id="LoIG6v2LNizb91KrbWGzjL">🖼️ 展览</option>
+      <option value="market" data-page-node-id="fUxGtAN5ERmZGJZIMhvKy9">🛍️ 市集</option>
+      <option value="show" data-page-node-id="2ZK1CuiBndb19gOylUQYB2">🎤 演出</option>
+      <option value="hiking" data-page-node-id="upweZFXWrqxuwDXMptNWfZ">🥾 徒步</option>
+      <option value="walk" data-page-node-id="frCynUA4zM8E35Ehccz9l5">🚶 城市漫步</option>
+      <option value="workshop" data-page-node-id="FFGaoMm81oYymRWlZ5vo60">🎨 手作工坊</option>
+    </select>
+    <button class="btn btn-primary" id="postOpen" style="margin-left:auto" data-page-node-id="A0ngwLrUiLKmP7PqnK6FIF">+ 发布组队</button>
+  </div>
+
+  <div id="teamList" data-page-node-id="kFzgFko7SbJkA1kQI4HsxF"></div>
+  <footer style="margin-top:30px" data-page-node-id="EvF1n3AdqjLuFWemctKhGg">WeekendGo · 大学生周末探索指南 MVP</footer>
+</div>
+<div class="toast" data-page-node-id="t0AGkvHcCAfw8UauLNcKaC"></div>
+
+<!-- 发布弹窗 -->
+<div class="overlay hidden" id="postModal" data-page-node-id="KA8EqtfW1cgqw8lXiueTNt"><div class="modal" id="postBox" data-page-node-id="21Oz9xCetfiX861AVfDq0Q"></div></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const listEl=document.getElementById("teamList");
+
+function render(){
+  const ft=document.getElementById("filterType").value;
+  let teams=App.getTeams();
+  if(ft) teams=teams.filter(t=>{const a=ACTIVITIES.find(x=>x.id===t.actId);return a&&a.type===ft;});
+  if(!teams.length){listEl.innerHTML=`<div class="empty"><div class="e-emoji">🫥</div><p>该类型还没有组队帖，来当第一个吧！</p></div>`;return;}
+  listEl.innerHTML=teams.map(t=>{
+    const a=ACTIVITIES.find(x=>x.id===t.actId)||{title:"（已下架活动）",emoji:"📌",cover:"#ccc",type:"",id:""};
+    const filled=Math.min(t.people,t.total);
+    const dots=Array.from({length:t.total},(_,i)=>`<i class="${i<filled?'f':''}"></i>`).join("");
+    return `
+    <div class="team-card">
+      <div class="badge" style="background:${a.cover}">${a.emoji}</div>
+      <div class="tc-body">
+        <h4>${a.title}</h4>
+        <div class="note">${t.note}</div>
+        <div class="people-bar">${dots}</div>
+        <div class="meta"><span>👤 ${t.user}</span><span>🕒 ${t.time}</span><span>📞 ${t.contact}</span></div>
+      </div>
+      <a class="btn btn-ghost" href="detail.html?id=${a.id}">查看活动 →</a>
+    </div>`;
+  }).join("");
+}
+document.getElementById("filterType").addEventListener("change",render);
+
+document.getElementById("postOpen").addEventListener("click",()=>{
+  const box=document.getElementById("postBox");
+  box.innerHTML=`
+    <h2>👯 发布组队</h2><p class="lead">从本周活动中选一场，告诉大伙你缺几个人。</p>
+    <div class="field"><label>选择活动</label>
+      <select id="pAct" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--line)">
+        ${ACTIVITIES.map(a=>`<option value="${a.id}">${a.emoji} ${a.title}</option>`).join("")}
+      </select></div>
+    <div class="field"><label>已有 / 总人数</label>
+      <div style="display:flex;gap:10px"><select id="pHave"><option>1</option><option>2</option><option>3</option></select>
+      <span style="align-self:center">/</span>
+      <select id="pTotal"><option>2</option><option selected>4</option><option>6</option><option>8</option></select></div></div>
+    <div class="field"><label>留言</label>
+      <textarea id="pNote" rows="3" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:14px" placeholder="比如：周六一起去，女生优先 / 可拼车 / AA 门票"></textarea></div>
+    <div class="field"><label>联系方式</label>
+      <input id="pContact" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:14px" placeholder="微信 / 留言区扣1"></div>
+    <div class="row"><button class="btn btn-primary" id="pSend">发布</button></div>`;
+  document.getElementById("pSend").addEventListener("click",()=>{
+    const act=ACTIVITIES.find(a=>a.id===document.getElementById("pAct").value);
+    App.addTeam({id:"t"+Date.now(),actId:act.id,user:"我",people:+document.getElementById("pHave").value,
+      total:+document.getElementById("pTotal").value,note:document.getElementById("pNote").value||"（没写留言）",
+      contact:document.getElementById("pContact").value||"评论区扣1",time:act.date});
+    document.getElementById("postModal").classList.add("hidden");
+    App.confetti(window.innerWidth/2,window.innerHeight/2);
+    App.toast("组队已发布 🎉"); render();
+  });
+  document.getElementById("postModal").classList.remove("hidden");
+});
+document.getElementById("postModal").addEventListener("click",e=>{if(e.target.id==="postModal")e.currentTarget.classList.add("hidden");});
+
+App.bindRipple(); render();
+</script>
+</body>
+</html>

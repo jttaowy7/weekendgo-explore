@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>活动详情 · WeekendGo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot">🧭</span>WeekendGo</a>
+    <div class="links">
+      <a href="index.html">首页</a>
+      <a href="explore.html">探索</a>
+      <a href="teamup.html">组队</a>
+      <a href="profile.html">我的</a>
+    </div>
+    <a class="me" href="profile.html">🙋</a>
+  </div>
+</nav>
+
+<div class="wrap" id="root"></div>
+<div class="toast"></div>
+
+<!-- 打卡弹窗 -->
+<div class="overlay hidden" id="checkinModal"><div class="modal" id="checkinBox"></div></div>
+<!-- 组队弹窗 -->
+<div class="overlay hidden" id="teamModal"><div class="modal" id="teamBox"></div></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get("id");
+const a = ACTIVITIES.find(x => x.id === id);
+const root = document.getElementById("root");
+
+if (!a) {
+  root.innerHTML = `<div class="empty" style="padding:80px"><div class="e-emoji">🤔</div><p>没有找到这个活动</p><a class="btn btn-primary" href="explore.html" style="margin-top:14px">去探索页</a></div>`;
+} else {
+  const weather = App.getWeather();
+  const fit = App.weatherFitText(a, weather);
+  const favOn = App.isFav(a.id);
+  const favTxt = favOn ? "♥ 已收藏" : "♡ 收藏";
+  root.innerHTML = `
+    <div class="detail-hero" style="background:${a.cover}">
+      <a class="back" href="explore.html">← 返回</a>
+      <button class="fav ${favOn?'on':''}" id="favBtn" title="收藏">${favOn?'♥':'♡'}</button>
+      ${a.emoji}
+    </div>
+    <div class="detail-grid">
+      <div class="detail-main">
+        <h1>${a.title}</h1>
+        <div class="tags">${a.tags.map(t=>`<span class="tag">${t}</span>`).join("")} <span class="tag">${App.typeEmoji(a.type)} ${App.typeName(a.type)}</span></div>
+        <p style="color:var(--ink-2);margin-top:6px">${a.desc}</p>
+
+        <div class="section-head" style="margin:24px 0 6px"><h2 style="font-size:17px">📋 活动信息</h2></div>
+        <div class="info-list">
+          <div class="info-row"><div class="k">📅 时间</div><div class="v">${a.date} ｜ ${a.time}</div></div>
+          <div class="info-row"><div class="k">📍 地点</div><div class="v">${a.location}（${a.district}）· 距市中心约 ${a.distance}km</div></div>
+          <div class="info-row"><div class="k">🚇 交通</div><div class="v">${a.transport}</div></div>
+          <div class="info-row"><div class="k">🏠 场地</div><div class="v">${a.indoor?'室内活动':'户外活动'}</div></div>
+          <div class="info-row"><div class="k">👥 适合</div><div class="v">${a.people[0]}–${a.people[1]} 人同行（你偏好 ${App.getPrefs().people} 人）</div></div>
+          <div class="info-row"><div class="k">⭐ 评分</div><div class="v">${a.rating} 分 ｜ ${a.joined} 人标记想去</div></div>
+        </div>
+
+        <div class="notice">
+          <b>⚠️ 注意事项：</b><br>${a.tips}
+        </div>
+      </div>
+
+      <aside class="side-card">
+        <div class="${a.price===0?'price-lg free':'price-lg'}">${a.price===0?'免费':('¥'+a.price)}</div>
+        <div style="color:var(--ink-3);font-size:13px;margin-top:2px">单人票价</div>
+        <div class="wfit ${fit.ok?'good':'bad'}" style="margin-top:12px;font-size:13px">${fit.ok?'✓':'!'} ${fit.text}</div>
+        <div class="stat-row"><span>天气</span><span>${weather.emoji} ${weather.label} ${weather.temp}°</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+          <button class="btn btn-primary btn-block" id="checkinBtn">✓ 标记已参加 / 打卡</button>
+          <button class="btn btn-ghost btn-block" id="teamBtn">👯 发起组队</button>
+          <button class="btn btn-ghost btn-block" id="favBtn2">${favTxt}</button>
+        </div>
+        <a class="btn btn-sun btn-block" href="teamup.html" style="margin-top:10px">逛逛组队广场 →</a>
+      </aside>
+    </div>
+    <footer>WeekendGo · 大学生周末探索指南 MVP</footer>
+  `;
+
+  /* 收藏 */
+  function doFav() {
+    const on = App.toggleFav(a.id);
+    document.getElementById("favBtn").classList.toggle("on", on);
+    document.getElementById("favBtn").textContent = on ? "♥" : "♡";
+    const b2 = document.getElementById("favBtn2");
+    if (b2) { b2.textContent = on ? "♥ 已收藏" : "♡ 收藏"; }
+    App.toast(on ? "已收藏 ♥" : "已取消收藏");
+  }
+  document.getElementById("favBtn").addEventListener("click", doFav);
+  document.getElementById("favBtn2").addEventListener("click", doFav);
+
+  /* 打卡弹窗 */
+  document.getElementById("checkinBtn").addEventListener("click", () => {
+    const checked = App.isChecked(a.id);
+    const box = document.getElementById("checkinBox");
+    box.innerHTML = `
+      <h2>${checked?'✏️ 更新打卡':'✓ 打卡 · '+a.title}</h2>
+      <p class="lead">记录下这次体验，会保存在「我的」主页里。</p>
+      <div class="field"><label>心情评分</label>
+        <div class="seg" id="rateSeg" style="display:inline-flex">
+          ${[1,2,3,4,5].map(n=>`<button data-r="${n}" class="${n===5?'on':''}">${'⭐'.repeat(n)}</button>`).join("")}
+        </div></div>
+      <div class="field"><label>打卡笔记</label>
+        <textarea id="note" rows="4" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:14px" placeholder="和谁去的？最推荐哪个环节？花了多少？给后来人一点参考吧～"></textarea></div>
+      <div class="field"><label>上传一张照片（可选）</label>
+        <input type="file" id="photo" accept="image/*" style="font-size:13px"></div>
+      <div class="row">
+        ${checked?'<button class="btn btn-ghost" id="delBtn">删除</button>':''}
+        <button class="btn btn-primary" id="saveBtn">保存打卡</button>
+      </div>`;
+    let rate = 5;
+    box.querySelectorAll("#rateSeg button").forEach(b=>b.addEventListener("click",()=>{
+      box.querySelectorAll("#rateSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");rate=+b.dataset.r;}));
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const note = document.getElementById("note").value.trim();
+      const file = document.getElementById("photo").files[0];
+      const finish = (photo) => {
+        let list = App.getCheckins().filter(c => c.actId !== a.id);
+        list.unshift({ id: "c"+Date.now(), actId: a.id, title: a.title, emoji: a.emoji, cover: a.cover,
+          note: note || "（无文字笔记）", rate, photo, date: new Date().toLocaleDateString("zh-CN") });
+        App.set(STORAGE_KEYS.checkins, list);
+        App.confetti(window.innerWidth/2, window.innerHeight/2);
+        document.getElementById("checkinModal").classList.add("hidden");
+        App.toast("打卡成功！已记录到「我的」🎉");
+      };
+      if (file) {
+        if (file.size > 1.5*1024*1024) { App.toast("图片略大，已跳过上传"); finish(null); return; }
+        const r = new FileReader(); r.onload = () => finish(r.result); r.readAsDataURL(file);
+      } else finish(null);
+    });
+    const del = document.getElementById("delBtn");
+    if (del) del.addEventListener("click", () => {
+      App.removeCheckin(a.id);
+      document.getElementById("checkinModal").classList.add("hidden");
+      App.toast("已删除该打卡");
+    });
+    document.getElementById("checkinModal").classList.remove("hidden");
+  });
+  document.getElementById("checkinModal").addEventListener("click", e => { if (e.target.id === "checkinModal") e.currentTarget.classList.add("hidden"); });
+
+  /* 组队弹窗 */
+  document.getElementById("teamBtn").addEventListener("click", () => {
+    const box = document.getElementById("teamBox");
+    box.innerHTML = `
+      <h2>👯 发起组队 · ${a.title}</h2>
+      <p class="lead">说一句组队需求，缺几个人，发到广场等小伙伴来拼。</p>
+      <div class="field"><label>已有 / 总人数</label>
+        <div style="display:flex;gap:10px">
+          <select id="have"><option>1</option><option>2</option><option>3</option></select>
+          <span style="align-self:center">/</span>
+          <select id="total"><option>2</option><option selected>4</option><option>6</option><option>8</option></select>
+        </div></div>
+      <div class="field"><label>留言</label>
+        <textarea id="tNote" rows="3" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:14px" placeholder="比如：周六一起去，女生优先 / 可拼车 / AA 门票"></textarea></div>
+      <div class="field"><label>联系方式</label>
+        <input id="tContact" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:14px" placeholder="微信 / 留言区扣1 等"></div>
+      <div class="row"><button class="btn btn-primary" id="postBtn">发布组队</button></div>`;
+    document.getElementById("postBtn").addEventListener("click", () => {
+      App.addTeam({ id:"t"+Date.now(), actId:a.id, user:"我", people:+document.getElementById("have").value,
+        total:+document.getElementById("total").value, note:document.getElementById("tNote").value||"（没写留言）",
+        contact:document.getElementById("tContact").value||"评论区扣1", time:a.date });
+      document.getElementById("teamModal").classList.add("hidden");
+      App.confetti(window.innerWidth/2, window.innerHeight/2);
+      App.toast("组队已发布，去广场看看吧 👯");
+    });
+    document.getElementById("teamModal").classList.remove("hidden");
+  });
+  document.getElementById("teamModal").addEventListener("click", e => { if (e.target.id === "teamModal") e.currentTarget.classList.add("hidden"); });
+
+  App.bindRipple();
+}
+</script>
+</body>
+</html>

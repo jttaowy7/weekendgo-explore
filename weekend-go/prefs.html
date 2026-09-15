@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>偏好设置 · WeekendGo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot">🧭</span>WeekendGo</a>
+    <div class="links">
+      <a href="index.html">首页</a>
+      <a href="explore.html">探索</a>
+      <a href="teamup.html">组队</a>
+      <a href="profile.html">我的</a>
+    </div>
+    <a class="me" href="profile.html">🙋</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero"><h1>⚙️ 偏好设置</h1>
+    <p>这些设置决定首页推荐。改完点保存，下次打开自动生效。</p></section>
+
+  <div class="pref-card">
+    <div class="field"><label>① 感兴趣的活动类型（多选）</label>
+      <div class="chips" id="types"></div></div>
+    <div class="field"><label>② 单场票价上限：<b id="budgetVal">¥50</b></label>
+      <input type="range" id="budget" min="0" max="150" step="10" value="50" style="width:100%"></div>
+    <div class="field"><label>③ 可接受出行距离：<b id="distVal">15km</b></label>
+      <input type="range" id="dist" min="3" max="35" step="1" value="15" style="width:100%"></div>
+    <div class="field"><label>④ 偏好同行人数</label>
+      <div class="seg" id="people" style="display:inline-flex">
+        ${[1,2,3,4,6].map(n=>`<button data-p="${n}">${n===6?'6+':n}人</button>`).join("")}
+      </div></div>
+    <div class="row" style="justify-content:flex-start;gap:10px;margin-top:6px">
+      <button class="btn btn-primary" id="save">保存偏好</button>
+      <button class="btn btn-ghost" id="reset">恢复默认</button>
+      <a class="btn btn-ghost" href="index.html">← 返回首页</a>
+    </div>
+  </div>
+
+  <div class="section-head"><h2>🔮 保存后的推荐预览</h2></div>
+  <div class="grid" id="preview"></div>
+
+  <footer style="margin-top:40px">WeekendGo · 大学生周末探索指南 MVP</footer>
+</div>
+<div class="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const p = App.getPrefs();
+const typesEl = document.getElementById("types");
+typesEl.innerHTML = App.ACTIVITY_TYPES.map(t=>`<button class="chip ${p.types.includes(t.key)?'on':''}" data-t="${t.key}">${t.emoji} ${t.name}</button>`).join("");
+typesEl.querySelectorAll("[data-t]").forEach(b=>b.addEventListener("click",()=>b.classList.toggle("on")));
+
+const budget=document.getElementById("budget"), budgetVal=document.getElementById("budgetVal");
+budget.value=p.budget; budgetVal.textContent="¥"+p.budget;
+budget.addEventListener("input",()=>budgetVal.textContent="¥"+budget.value);
+
+const dist=document.getElementById("dist"), distVal=document.getElementById("distVal");
+dist.value=p.distance; distVal.textContent=p.distance+"km";
+dist.addEventListener("input",()=>distVal.textContent=dist.value+"km");
+
+const people=document.getElementById("people");
+people.querySelectorAll("button").forEach(b=>{ if(+b.dataset.p===p.people) b.classList.add("on");
+  b.addEventListener("click",()=>{people.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");});});
+
+function preview(){
+  const cur={types:[...typesEl.querySelectorAll(".chip.on")].map(c=>c.dataset.t),
+    budget:+budget.value, distance:+dist.value,
+    people:+(people.querySelector(".on")?.dataset.p||2)};
+  const weather=App.getWeather();
+  const list=App.recommend(ACTIVITIES,cur,weather).slice(0,3);
+  App.renderGrid(document.getElementById("preview"),list,{score:true});
+  document.querySelectorAll("#preview .card").forEach((c,i)=>{const m=c.querySelector(".match");if(m)m.innerHTML=`匹配度 <b>${list[i].score}%</b>`;});
+}
+document.getElementById("save").addEventListener("click",()=>{
+  const np={types:[...typesEl.querySelectorAll(".chip.on")].map(c=>c.dataset.t),
+    budget:+budget.value, distance:+dist.value,
+    people:+(people.querySelector(".on")?.dataset.p||2)};
+  App.setPrefs(np); App.toast("偏好已保存 ✅"); preview();
+});
+document.getElementById("reset").addEventListener("click",()=>{App.setPrefs(App.defaultPrefs());location.reload();});
+App.bindRipple(); preview();
+</script>
+</body>
+</html>

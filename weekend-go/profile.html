@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的 · WeekendGo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot">🧭</span>WeekendGo</a>
+    <div class="links">
+      <a href="index.html">首页</a>
+      <a href="explore.html">探索</a>
+      <a href="teamup.html">组队</a>
+      <a class="active" href="profile.html">我的</a>
+    </div>
+    <a class="me" href="profile.html">🙋</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="profile-head">
+    <div class="avatar">🙋</div>
+    <div>
+      <h2 style="font-size:20px">我的周末探索</h2>
+      <p style="color:var(--ink-2);font-size:13px" id="cityLine"></p>
+    </div>
+    <a class="btn btn-ghost" href="prefs.html" style="margin-left:auto">⚙️ 编辑偏好</a>
+  </div>
+
+  <div class="stat-cards">
+    <div class="stat-box"><div class="n" id="sCount">0</div><div class="l">已打卡活动</div></div>
+    <div class="stat-box"><div class="n" id="sType">0</div><div class="l">探索类型数</div></div>
+    <div class="stat-box"><div class="n" id="sFav">0</div><div class="l">收藏活动</div></div>
+  </div>
+
+  <div class="pref-card">
+    <h3 style="font-size:16px;font-weight:800">🎯 我的偏好</h3>
+    <div class="pref-grid" id="prefGrid"></div>
+  </div>
+
+  <div class="section-head"><h2>✓ 我的打卡记录</h2>
+    <span class="sub" id="ciSub"></span></div>
+  <div id="checkinList"></div>
+
+  <footer style="margin-top:40px">WeekendGo · 大学生周末探索指南 MVP</footer>
+</div>
+<div class="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const prefs=App.getPrefs(), checkins=App.getCheckins(), favs=App.getFavs();
+
+document.getElementById("cityLine").textContent=`${App.CITY} · 偏好 ${prefs.people} 人同行 · 预算 ¥${prefs.budget} 内`;
+
+// 统计
+document.getElementById("sCount").textContent=checkins.length;
+document.getElementById("sType").textContent=new Set(checkins.map(c=>{
+  const act=ACTIVITIES.find(a=>a.id===c.actId);return act?act.type:"";})).size;
+document.getElementById("sFav").textContent=favs.length;
+
+// 偏好概览
+document.getElementById("prefGrid").innerHTML=`
+  <div class="pref-item"><div class="t">感兴趣类型</div><div class="v">${prefs.types.map(t=>App.typeEmoji(t)+App.typeName(t)).join(" ")||"全部"}</div></div>
+  <div class="pref-item"><div class="t">票价上限</div><div class="v">¥${prefs.budget}${prefs.budget===0?'(只看免费)':''}</div></div>
+  <div class="pref-item"><div class="t">出行距离</div><div class="v">≤ ${prefs.distance} km</div></div>
+  <div class="pref-item"><div class="t">偏好同行</div><div class="v">${prefs.people} 人</div></div>`;
+
+// 打卡列表
+const listEl=document.getElementById("checkinList");
+document.getElementById("ciSub").textContent=checkins.length?`共 ${checkins.length} 条`:"";
+if(!checkins.length){
+  listEl.innerHTML=`<div class="empty"><div class="e-emoji">📭</div><p>还没有打卡记录，去首页挑一场周末活动吧！</p><a class="btn btn-primary" href="index.html" style="margin-top:14px">去探索</a></div>`;
+}else{
+  listEl.innerHTML=checkins.map(c=>`
+    <div class="checkin">
+      <div class="thumb" style="background:${c.cover}">${c.emoji}</div>
+      <div class="ci-body">
+        <h4>${c.title} <span style="color:var(--sun)">${'⭐'.repeat(c.rate)}</span></h4>
+        <div class="ci-note">${c.note}</div>
+        ${c.photo?`<img class="ci-photo" src="${c.photo}" alt="打卡照片">`:""}
+        <div class="ci-foot"><span>📅 ${c.date}</span><button class="chip" data-del="${c.id}" style="padding:2px 10px">删除</button></div>
+      </div>
+    </div>`).join("");
+  listEl.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
+    App.removeCheckin(b.dataset.del);
+    App.toast("已删除该打卡"); location.reload();
+  }));
+}
+App.bindRipple();
+</script>
+</body>
+</html>

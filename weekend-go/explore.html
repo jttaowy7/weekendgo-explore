@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>探索 · WeekendGo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot">🧭</span>WeekendGo</a>
+    <div class="links">
+      <a href="index.html">首页</a>
+      <a class="active" href="explore.html">探索</a>
+      <a href="teamup.html">组队</a>
+      <a href="profile.html">我的</a>
+    </div>
+    <a class="me" href="profile.html">🙋</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero">
+    <h1>探索 <span class="hl">全部周末活动</span></h1>
+    <p>按类型、预算、室内外筛选，智能排序一键帮你找最合适的一场。</p>
+    <div class="weather-card" id="weatherCard"></div>
+  </section>
+
+  <!-- 筛选栏 -->
+  <div class="filters" id="filters" style="margin-top:18px">
+    <select id="fType">
+      <option value="">全部类型</option>
+      <option value="exhibition">🖼️ 展览</option>
+      <option value="market">🛍️ 市集</option>
+      <option value="show">🎤 演出</option>
+      <option value="hiking">🥾 徒步</option>
+      <option value="walk">🚶 城市漫步</option>
+      <option value="workshop">🎨 手作工坊</option>
+    </select>
+    <select id="fBudget">
+      <option value="9999">不限预算</option>
+      <option value="0">仅免费</option>
+      <option value="30">≤ ¥30</option>
+      <option value="50">≤ ¥50</option>
+      <option value="100">≤ ¥100</option>
+    </select>
+    <div class="seg" id="fIndoor">
+      <button data-v="" class="on">不限</button>
+      <button data-v="1">室内</button>
+      <button data-v="0">户外</button>
+    </div>
+    <div class="seg" id="fSort">
+      <button data-v="match" class="on">智能匹配</button>
+      <button data-v="price">价格↑</button>
+      <button data-v="dist">距离↑</button>
+    </div>
+    <span class="grow" id="count"></span>
+  </div>
+
+  <div class="grid" id="grid" style="margin:18px 0 40px"></div>
+  <footer>WeekendGo · 大学生周末探索指南 MVP</footer>
+</div>
+<div class="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const wEl=document.getElementById("weatherCard");
+App.bindRipple();
+App.renderWeather(wEl);
+const state={type:"",budget:9999,indoor:"",sort:"match"};
+
+function apply(){
+  const prefs=App.getPrefs(), weather=App.getWeather();
+  let list=ACTIVITIES.filter(a=>{
+    if(state.type && a.type!==state.type) return false;
+    if(state.budget===0 && a.price!==0) return false;
+    if(state.budget!==0 && state.budget!==9999 && a.price>state.budget) return false;
+    if(state.indoor!=="" && String(+a.indoor)!==state.indoor) return false;
+    return true;
+  });
+  if(state.sort==="match"){
+    list=App.recommend(list,prefs,weather);
+  }else if(state.sort==="price"){
+    list=[...list].sort((x,y)=>x.price-y.price);
+  }else{
+    list=[...list].sort((x,y)=>x.distance-y.distance);
+  }
+  document.getElementById("count").textContent=`共 ${list.length} 个活动`;
+  const fitOf = (a)=>App.weatherFitText(a,weather);
+  App.renderGrid(document.getElementById("grid"), list,
+    state.sort==="match"
+      ? {score:a=>a.score, reason:a=>fitOf(a).text, fitOk:a=>fitOf(a).ok}
+      : {reason:a=>fitOf(a).text, fitOk:a=>fitOf(a).ok});
+}
+
+document.getElementById("fType").addEventListener("change",e=>{state.type=e.target.value;apply();});
+document.getElementById("fBudget").addEventListener("change",e=>{state.budget=+e.target.value;apply();});
+document.querySelectorAll("#fIndoor button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#fIndoor button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  state.indoor=b.dataset.v;apply();}));
+document.querySelectorAll("#fSort button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#fSort button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  state.sort=b.dataset.v;apply();}));
+
+apply();
+</script>
+</body>
+</html>
