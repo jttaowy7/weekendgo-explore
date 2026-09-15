@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>攻略社区 · WeekendGo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot">🧭</span>WeekendGo</a>
+    <div class="links">
+      <a href="index.html">首页</a>
+      <a href="explore.html">探索</a>
+      <a href="map.html">地图</a>
+      <a class="active" href="guide.html">攻略</a>
+      <a href="teamup.html">组队</a>
+      <a href="profile.html">我的</a>
+    </div>
+    <a class="me" href="profile.html" data-avatar title="个人主页">🙋</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero">
+    <h1>📖 攻略社区</h1>
+    <p>看别人的真实体验，也把你的踩坑 / 宝藏路线分享出来，帮更多同学少走弯路。</p>
+  </section>
+
+  <div style="display:flex;gap:10px;margin:18px 0">
+    <div class="chips" id="gFilter" style="flex:1">
+      <button class="chip on" data-t="">全部</button>
+    </div>
+    <button class="btn btn-primary" id="writeOpen" style="margin-left:auto;white-space:nowrap">✍️ 写攻略</button>
+  </div>
+
+  <div id="guideList"></div>
+  <footer style="margin-top:30px">WeekendGo · 大学生周末探索指南 MVP</footer>
+</div>
+<div class="toast"></div>
+
+<div class="overlay hidden" id="writeModal"><div class="modal" id="writeBox"></div></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const listEl=document.getElementById("guideList");
+
+function allGuides(){
+  const seed=App.SEED_GUIDES.map(g=>({...g,seed:true}));
+  const mine=App.get(STORAGE_KEYS.guides,[]).map(g=>({...g,seed:false}));
+  return [...mine,...seed];
+}
+function likedSet(){return App.get(STORAGE_KEYS.likedGuides,[]);}
+
+function render(){
+  const ft=document.querySelector("#gFilter .chip.on").dataset.t;
+  let gs=allGuides();
+  if(ft) gs=gs.filter(g=>{const a=ACTIVITIES.find(x=>x.id===g.actId);return a&&a.type===ft;});
+  const liked=likedSet();
+  if(!gs.length){listEl.innerHTML=`<div class="empty"><div class="e-emoji">📝</div><p>这个分类还没有攻略，来写第一篇！</p></div>`;return;}
+  listEl.innerHTML=gs.map(g=>{
+    const a=ACTIVITIES.find(x=>x.id===g.actId)||{title:"（已下架活动）",type:"",emoji:"📌"};
+    const likes=g.likes+(liked.includes(g.id)?1:0);
+    return `
+    <div class="guide-card">
+      <div class="g-head">
+        <div class="g-ava">${g.avatar||"🙋"}</div>
+        <div>
+          <h4>${g.title}</h4>
+          <div class="g-meta">${g.author} · ${g.time} · 关联：<a href="detail.html?id=${a.id}" style="color:var(--brand)">${a.emoji} ${a.title}</a></div>
+        </div>
+      </div>
+      <div class="g-body">${g.body}</div>
+      <div class="tags" style="margin-top:10px">${g.tags.map(t=>`<span class="tag">#${t}</span>`).join("")}</div>
+      <div class="g-foot">
+        <button class="like-btn ${liked.includes(g.id)?'on':''}" data-like="${g.id}"><span class="hk">${liked.includes(g.id)?'❤️':'🤍'}</span> <span class="lc">${likes}</span></button>
+        ${g.seed?'<span class="g-meta">官方精选</span>':'<span class="g-meta">我的发布</span>'}
+      </div>
+    </div>`;
+  }).join("");
+  listEl.querySelectorAll("[data-like]").forEach(b=>b.addEventListener("click",()=>{
+    let s=likedSet();
+    const id=b.dataset.like;
+    s.includes(id)?s=s.filter(x=>x!==id):s.push(id);
+    App.set(STORAGE_KEYS.likedGuides,s);
+    const g=allGuides().find(x=>x.id===id);
+    const on=s.includes(id);
+    b.classList.toggle("on",on);
+    b.querySelector(".hk").textContent=on?'❤️':'🤍';
+    b.querySelector(".lc").textContent=g.likes+(on?1:0);
+  }));
+}
+
+/* 活动类型筛选 chips（JS 渲染，避免静态模板不执行） */
+const gf=document.getElementById("gFilter");
+App.ACTIVITY_TYPES.forEach(t=>{const b=document.createElement("button");b.className="chip";b.dataset.t=t.key;b.textContent=`${t.emoji} ${t.name}`;gf.appendChild(b);});
+document.querySelectorAll("#gFilter .chip").forEach(c=>c.addEventListener("click",()=>{
+  document.querySelectorAll("#gFilter .chip").forEach(x=>x.classList.remove("on"));c.classList.add("on");render();
+}));
+
+/* 写攻略弹窗 */
+document.getElementById("writeOpen").addEventListener("click",()=>{
+  const box=document.getElementById("writeBox");
+  box.innerHTML=`
+    <h2>✍️ 写攻略</h2><p class="lead">分享一次真实体验，关联对应活动更好找。</p>
+    <div class="field"><label>关联活动</label>
+      <select id="wAct" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--line)">
+        ${ACTIVITIES.map(a=>`<option value="${a.id}">${a.emoji} ${a.title}</option>`).join("")}
+      </select></div>
+    <div class="field"><label>标题</label>
+      <input id="wTitle" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:14px" placeholder="一句话说清这篇攻略讲啥"></div>
+    <div class="field"><label>内容</label>
+      <textarea id="wBody" rows="5" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:14px" placeholder="路线 / 避雷点 / 花费 / 最佳时间……越具体越有用"></textarea></div>
+    <div class="field"><label>标签（逗号分隔）</label>
+      <input id="wTags" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:13px" placeholder="如：徒步,路线,避雷"></div>
+    <div class="row"><button class="btn btn-primary" id="wSend">发布攻略</button></div>`;
+  document.getElementById("wSend").addEventListener("click",()=>{
+    const title=document.getElementById("wTitle").value.trim();
+    const body=document.getElementById("wBody").value.trim();
+    if(!title||!body){App.toast("标题和内容都要填哦");return;}
+    const prof=App.getProfile();
+    const tags=(document.getElementById("wTags").value||"").split(/[,，]/).map(t=>t.trim()).filter(Boolean);
+    const mine=App.get(STORAGE_KEYS.guides,[]);
+    mine.unshift({id:"g"+Date.now(),actId:document.getElementById("wAct").value,author:prof.nickname,
+      avatar:prof.avatar,title,body,tags:tags.length?tags:["攻略"],likes:0,time:"刚刚"});
+    App.set(STORAGE_KEYS.guides,mine);
+    document.getElementById("writeModal").classList.add("hidden");
+    App.confetti(window.innerWidth/2,window.innerHeight/2);
+    App.toast("攻略发布成功 🎉"); render();
+  });
+  document.getElementById("writeModal").classList.remove("hidden");
+});
+document.getElementById("writeModal").addEventListener("click",e=>{if(e.target.id==="writeModal")e.currentTarget.classList.add("hidden");});
+
+App.bindRipple(); render();
+</script>
+</body>
+</html>

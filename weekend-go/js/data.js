@@ -177,4 +177,39 @@ const STORAGE_KEYS = {
   weather: "wge_weather",
   favs: "wge_favs",
   onboarded: "wge_onboarded",
+  profile: "wge_profile",
+  guides: "wge_guides",
+  likedGuides: "wge_liked_guides",
 };
+
+// 预设头像：按 男生 / 女生（含不同肤色）/ 趣味 分类，纯 emoji 零资源
+const AVATAR_PRESETS = {
+  male:   ["👦🏻", "👦🏼", "👦🏽", "👦🏾", "👦🏿"],
+  female: ["👧🏻", "👧🏼", "👧🏽", "👧🏾", "👧🏿"],
+  fun:    ["🦊", "🐼", "🦁", "🐯", "🐨", "🐸", "🐙", "🦄", "🐶", "🐱", "🐰", "🐵"],
+};
+
+// 行政区在风格化地图上的坐标（viewBox 600x420 内的百分比近似）
+const DISTRICT_COORDS = {
+  "余杭区": { x: 14, y: 18 },
+  "拱墅区": { x: 50, y: 24 },
+  "西湖区": { x: 26, y: 52 },
+  "上城区": { x: 56, y: 64 },
+  "滨江区": { x: 74, y: 76 },
+};
+
+// 攻略社区种子内容
+const SEED_GUIDES = [
+  { id: "g1", actId: "a01", author: "柚子", avatar: "🦊", title: "西湖群山徒步保姆级路线",
+    body: "龙井村入口出发，沿茶园台阶一路下坡，约 3 小时到九溪。建议 9 点前到，避开人流；中途「理安寺」可补水。穿防滑鞋！雨天石阶超滑别硬上。",
+    tags: ["徒步", "路线", "避雷"], likes: 42, time: "2 天前" },
+  { id: "g2", actId: "a02", author: "小满", avatar: "👧🏽", title: "天目里书展盖章攻略",
+    body: "带一本空白本子！现场 8 个限定章，集章点分散在各楼层，先拿导览图规划。周六下午人最多，建议周日早上去，能慢慢挑。",
+    tags: ["展览", "盖章", "逛展"], likes: 28, time: "3 天前" },
+  { id: "g3", actId: "a04", author: "阿K", avatar: "👦🏻", title: "MAO Livehouse 站区生存指南",
+    body: "学生票现场核验学生证，提前 40 分钟到场能抢到前排栏杆位。现场禁外带饮品，楼下有补水点。散场注意末班地铁 22:50。",
+    tags: ["演出", "live", "排队"], likes: 51, time: "4 天前" },
+  { id: "g4", actId: "a09", author: "鹿野", avatar: "🐼", title: "省博之江馆半日游路线",
+    body: "免费但要提前公众号预约！镇馆之宝越王剑在一楼，玉琮在二楼。建议租讲解器，不然看不懂。周一闭馆别跑空。",
+    tags: ["展览", "免费", "预约"], likes: 36, time: "5 天前" },
+];

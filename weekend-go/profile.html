@@ -13,18 +13,20 @@
     <div class="links">
       <a href="index.html">首页</a>
       <a href="explore.html">探索</a>
+      <a href="map.html">地图</a>
+      <a href="guide.html">攻略</a>
       <a href="teamup.html">组队</a>
       <a class="active" href="profile.html">我的</a>
     </div>
-    <a class="me" href="profile.html">🙋</a>
+    <a class="me" href="profile.html" data-avatar>🙋</a>
   </div>
 </nav>
 
 <div class="wrap">
   <div class="profile-head">
-    <div class="avatar">🙋</div>
+    <div class="avatar" data-avatar>🙋</div>
     <div>
-      <h2 style="font-size:20px">我的周末探索</h2>
+      <h2 style="font-size:20px" data-nick>周末探险家</h2>
       <p style="color:var(--ink-2);font-size:13px" id="cityLine"></p>
     </div>
     <a class="btn btn-ghost" href="prefs.html" style="margin-left:auto">⚙️ 编辑偏好</a>
@@ -39,6 +41,21 @@
   <div class="pref-card">
     <h3 style="font-size:16px;font-weight:800">🎯 我的偏好</h3>
     <div class="pref-grid" id="prefGrid"></div>
+  </div>
+
+  <div class="pref-card">
+    <h3 style="font-size:16px;font-weight:800">✏️ 编辑资料</h3>
+    <div class="field" style="margin-top:12px"><label>昵称</label>
+      <input class="nick-input" id="nick" maxlength="12" placeholder="给自己起个名字吧"></div>
+    <div class="field" style="margin-top:6px"><label>选择头像</label>
+      <div class="avatar-cats" id="avatarCats"></div>
+      <div class="avatar-grid" id="avatarGrid"></div>
+      <label class="upload-btn" for="avatarUpload" style="margin-top:12px">📷 上传照片</label>
+      <input type="file" id="avatarUpload" accept="image/*" hidden>
+    </div>
+    <div class="row" style="justify-content:flex-start;margin-top:14px">
+      <button class="btn btn-primary" id="saveProfile">保存资料</button>
+    </div>
   </div>
 
   <div class="section-head"><h2>✓ 我的打卡记录</h2>
@@ -56,11 +73,11 @@ const prefs=App.getPrefs(), checkins=App.getCheckins(), favs=App.getFavs();
 
 document.getElementById("cityLine").textContent=`${App.CITY} · 偏好 ${prefs.people} 人同行 · 预算 ¥${prefs.budget} 内`;
 
-// 统计
-document.getElementById("sCount").textContent=checkins.length;
-document.getElementById("sType").textContent=new Set(checkins.map(c=>{
-  const act=ACTIVITIES.find(a=>a.id===c.actId);return act?act.type:"";})).size;
-document.getElementById("sFav").textContent=favs.length;
+// 统计（带数字滚动动画）
+App.animateCount(document.getElementById("sCount"), checkins.length);
+const typeCount=new Set(checkins.map(c=>{const act=ACTIVITIES.find(a=>a.id===c.actId);return act?act.type:"";})).size;
+App.animateCount(document.getElementById("sType"), typeCount);
+App.animateCount(document.getElementById("sFav"), favs.length);
 
 // 偏好概览
 document.getElementById("prefGrid").innerHTML=`
@@ -90,6 +107,38 @@ if(!checkins.length){
     App.toast("已删除该打卡"); location.reload();
   }));
 }
+
+/* 头像 / 昵称编辑 */
+const profile=App.getProfile();
+document.getElementById("nick").value=profile.nickname;
+let pendingAvatar=profile.avatar;
+const cats=[["male","👦 男生"],["female","👧 女生"],["fun","🐾 趣味"]];
+const catEl=document.getElementById("avatarCats"), gridEl=document.getElementById("avatarGrid");
+let curCat="male";
+function renderCats(){
+  catEl.innerHTML=cats.map(([k,name])=>`<span class="cat ${k===curCat?'on':''}" data-c="${k}">${name}</span>`).join("");
+  catEl.querySelectorAll("[data-c]").forEach(s=>s.addEventListener("click",()=>{curCat=s.dataset.c;renderCats();renderGrid();}));
+}
+function renderGrid(){
+  const list=App.AVATAR_PRESETS[curCat];
+  gridEl.innerHTML=list.map(e=>`<div class="avatar-opt ${e===pendingAvatar?'on':''}" data-a="${e}">${e}</div>`).join("");
+  gridEl.querySelectorAll("[data-a]").forEach(o=>o.addEventListener("click",()=>{
+    pendingAvatar=o.dataset.a; renderGrid();
+  }));
+}
+renderCats(); renderGrid();
+document.getElementById("avatarUpload").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f)return;
+  if(f.size>1.5*1024*1024){App.toast("图片略大，请选 1.5MB 内");return;}
+  const r=new FileReader(); r.onload=()=>{pendingAvatar=r.result;renderGrid();App.toast("已选自定义头像，点保存生效");}; r.readAsDataURL(f);
+});
+document.getElementById("saveProfile").addEventListener("click",()=>{
+  App.setProfile({nickname:document.getElementById("nick").value.trim()||"周末探险家",avatar:pendingAvatar});
+  App.syncAvatar();
+  App.confetti(window.innerWidth/2,window.innerHeight/2);
+  App.toast("资料已保存 ✅");
+});
+
 App.bindRipple();
 </script>
 </body>

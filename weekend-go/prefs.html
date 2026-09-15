@@ -13,10 +13,12 @@
     <div class="links">
       <a href="index.html">首页</a>
       <a href="explore.html">探索</a>
+      <a href="map.html">地图</a>
+      <a href="guide.html">攻略</a>
       <a href="teamup.html">组队</a>
       <a href="profile.html">我的</a>
     </div>
-    <a class="me" href="profile.html">🙋</a>
+    <a class="me" href="profile.html" data-avatar>🙋</a>
   </div>
 </nav>
 
@@ -33,7 +35,7 @@
       <input type="range" id="dist" min="3" max="35" step="1" value="15" style="width:100%"></div>
     <div class="field"><label>④ 偏好同行人数</label>
       <div class="seg" id="people" style="display:inline-flex">
-        ${[1,2,3,4,6].map(n=>`<button data-p="${n}">${n===6?'6+':n}人</button>`).join("")}
+        ${[1,2,3,4,5,6].map(n=>`<button data-p="${n}">${n===6?'6+':n}人</button>`).join("")}
       </div></div>
     <div class="row" style="justify-content:flex-start;gap:10px;margin-top:6px">
       <button class="btn btn-primary" id="save">保存偏好</button>

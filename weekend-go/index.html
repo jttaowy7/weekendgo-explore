@@ -15,10 +15,12 @@
     <div class="links">
       <a class="active" href="index.html">首页</a>
       <a href="explore.html">探索</a>
+      <a href="map.html">地图</a>
+      <a href="guide.html">攻略</a>
       <a href="teamup.html">组队</a>
       <a href="profile.html">我的</a>
     </div>
-    <a class="me" href="profile.html" title="个人主页">🙋</a>
+    <a class="me" href="profile.html" data-avatar title="个人主页">🙋</a>
   </div>
 </nav>
 
@@ -43,6 +45,7 @@
   <div class="section-head">
     <h2>🔥 为你推荐</h2>
     <span class="sub" id="recSub"></span>
+    <button class="btn btn-ghost" id="shuffleBtn" style="margin-left:auto">🔄 换一批</button>
     <a class="more" href="explore.html">看全部 →</a>
   </div>
   <div class="grid" id="recGrid"></div>
@@ -61,12 +64,21 @@
 <script>
 /* ---------- 首页逻辑 ---------- */
 const wEl = document.getElementById("weatherCard");
-function refreshHome() {
+function refreshHome(shuffle) {
   const prefs = App.getPrefs();
   const weather = App.getWeather();
-  const ranked = App.recommend(ACTIVITIES, prefs, weather).slice(0, 6);
+  const ranked = App.recommend(ACTIVITIES, prefs, weather);
+  let show = ranked.slice(0, 6);
+  if (shuffle) {
+    const pool = ranked.slice(0, 12);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    show = pool.slice(0, 6);
+  }
   const fitOf = (a) => App.weatherFitText(a, weather);
-  App.renderGrid(document.getElementById("recGrid"), ranked, {
+  App.renderGrid(document.getElementById("recGrid"), show, {
     score: (a) => a.score,
     reason: (a) => fitOf(a).text,
     fitOk: (a) => fitOf(a).ok,
@@ -109,7 +121,7 @@ function startOnboard() {
     { t: "约谁一起？ 👯", l: "一个人也行，一群人也行。我会据此推荐合适规模的活动。",
       field: `<div class="field"><label>偏好同行人数</label>
         <div class="seg" id="obPpl" style="display:inline-flex">
-          ${[1,2,3,4,6].map(n=>`<button data-p="${n}" class="${n===2?'on':''}">${n===6?'6+':n}人</button>`).join("")}
+          ${[1,2,3,4,5,6].map(n=>`<button data-p="${n}" class="${n===2?'on':''}">${n===6?'6+':n}人</button>`).join("")}
         </div></div>` },
   ];
   let idx = 0;
@@ -160,6 +172,7 @@ App.bindRipple();
 App.renderWeather(wEl, refreshHome);
 renderPrefChips();
 refreshHome();
+document.getElementById("shuffleBtn").addEventListener("click", () => { refreshHome(true); App.toast("已为你换一批 🔄"); });
 startOnboard();
 </script>
 </body>

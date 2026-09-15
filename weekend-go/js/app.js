@@ -3,9 +3,16 @@
  * 依赖 data.js（ACTIVITIES / TYPES / WEATHER_PRESETS ...）
  * ========================================================= */
 const App = (() => {
-  /* ---------- 存储 ---------- */
-  const get = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-  const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  /* ---------- 存储（localStorage 不可用时回退内存，保证页面不崩） ---------- */
+  const _mem = {};
+  const get = (k, d) => {
+    try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }
+    catch { return _mem[k] ?? d; }
+  };
+  const set = (k, v) => {
+    try { localStorage.setItem(k, JSON.stringify(v)); }
+    catch { _mem[k] = v; }
+  };
 
   /* ---------- 工具 ---------- */
   const typeName = (k) => (ACTIVITY_TYPES.find(t => t.key === k) || {}).name || k;
@@ -27,6 +34,11 @@ const App = (() => {
   const getPrefs = () => Object.assign(defaultPrefs(), get(STORAGE_KEYS.prefs, {}));
   const setPrefs = (p) => set(STORAGE_KEYS.prefs, p);
 
+  /* ---------- 个人资料（头像 / 昵称） ---------- */
+  const defaultProfile = () => ({ nickname: "周末探险家", avatar: "🙋" });
+  const getProfile = () => Object.assign(defaultProfile(), get(STORAGE_KEYS.profile, {}));
+  const setProfile = (p) => set(STORAGE_KEYS.profile, p);
+
   /* ---------- 打卡记录 ---------- */
   const getCheckins = () => get(STORAGE_KEYS.checkins, []);
   const addCheckin = (c) => { const l = getCheckins(); l.unshift(c); set(STORAGE_KEYS.checkins, l); };
@@ -44,7 +56,7 @@ const App = (() => {
   const isFav = (id) => getFavs().includes(id);
 
   /* ---------- 组队 ---------- */
-  const getTeams = () => { if (!localStorage.getItem(STORAGE_KEYS.teams)) set(STORAGE_KEYS.teams, SEED_TEAMS); return get(STORAGE_KEYS.teams, SEED_TEAMS); };
+  const getTeams = () => { if (!get(STORAGE_KEYS.teams, null)) set(STORAGE_KEYS.teams, SEED_TEAMS); return get(STORAGE_KEYS.teams, SEED_TEAMS); };
   const addTeam = (t) => { const l = getTeams(); l.unshift(t); set(STORAGE_KEYS.teams, l); };
 
   /* =========================================================
@@ -215,14 +227,56 @@ const App = (() => {
     toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
   }
 
+  // 数字滚动动画
+  function animateCount(el, to, dur = 700) {
+    const start = performance.now(), from = 0;
+    function step(now) {
+      const p = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
   return {
     get, set, $, $$, typeName, typeEmoji,
     getWeather, setWeather, WEATHER_PRESETS,
     getPrefs, setPrefs, defaultPrefs,
+    getProfile, setProfile, AVATAR_PRESETS,
     getCheckins, addCheckin, removeCheckin, isChecked,
     getFavs, toggleFav, isFav, bindFavs,
     getTeams, addTeam,
     recommend, weatherFitText, cardHTML, renderGrid, renderWeather,
-    ripple, bindRipple, confetti, toast, ACTIVITY_TYPES, CITY,
+    ripple, bindRipple, confetti, toast, animateCount, ACTIVITY_TYPES, CITY,
+    SEED_GUIDES, DISTRICT_COORDS,
   };
+})();
+
+/* =========================================================
+ * 全局 UI：返回顶部 + 头像/昵称同步（每个页面加载 app.js 时执行一次）
+ * ========================================================= */
+(function () {
+  // 返回顶部浮动按钮
+  const toTop = document.createElement("button");
+  toTop.className = "totop";
+  toTop.innerHTML = "↑";
+  toTop.title = "回到顶部";
+  document.body.appendChild(toTop);
+  window.addEventListener("scroll", () => toTop.classList.toggle("show", window.scrollY > 420), { passive: true });
+  toTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+  // 头像 / 昵称同步到所有标记元素
+  App.syncAvatar = function () {
+    const p = App.getProfile();
+    document.querySelectorAll("[data-avatar]").forEach(el => {
+      if (p.avatar && p.avatar.startsWith("data:")) {
+        el.innerHTML = `<img src="${p.avatar}" alt="头像" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+      } else {
+        el.textContent = p.avatar || "🙋";
+      }
+    });
+    document.querySelectorAll("[data-nick]").forEach(el => (el.textContent = p.nickname || "周末探险家"));
+  };
+  if (document.readyState !== "loading") App.syncAvatar();
+  else document.addEventListener("DOMContentLoaded", App.syncAvatar);
 })();

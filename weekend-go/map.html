@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>地图 · WeekendGo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot">🧭</span>WeekendGo</a>
+    <div class="links">
+      <a href="index.html">首页</a>
+      <a href="explore.html">探索</a>
+      <a class="active" href="map.html">地图</a>
+      <a href="guide.html">攻略</a>
+      <a href="teamup.html">组队</a>
+      <a href="profile.html">我的</a>
+    </div>
+    <a class="me" href="profile.html" data-avatar title="个人主页">🙋</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero">
+    <h1>🗺️ 周末地图</h1>
+    <p>把活动按所在城区铺到地图上，离你多近一目了然。悬停看信息，点一下进详情。</p>
+  </section>
+
+  <div class="map-wrap" id="map"></div>
+
+  <div class="map-legend" id="legend"></div>
+
+  <div class="section-head"><h2>📍 按距离排序</h2>
+    <span class="sub">近的优先安排</span></div>
+  <div class="grid" id="nearby"></div>
+
+  <footer style="margin-top:30px">WeekendGo · 大学生周末探索指南 MVP（演示用风格化地图，真实部署可替换高德/腾讯地图 SDK）</footer>
+</div>
+<div class="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const COLORS={exhibition:"#ff7a59",market:"#f4a93b",show:"#764ba2",hiking:"#2bb673",walk:"#19c2c2",workshop:"#ff6b9d"};
+const map=document.getElementById("map");
+
+// 分组并按城区铺点（同城多个活动做小范围散开）
+const groups={};
+ACTIVITIES.forEach(a=>{(groups[a.district]=groups[a.district]||[]).push(a);});
+let pinsHTML="";
+Object.entries(groups).forEach(([dist,arr])=>{
+  const base=App.DISTRICT_COORDS[dist]||{x:50,y:50};
+  pinsHTML+=`<div class="map-district" style="left:${base.x}%;top:${base.y}%">${dist}</div>`;
+  arr.forEach((a,i)=>{
+    const ang=(i/Math.max(arr.length,1))*Math.PI*2;
+    const r=arr.length>1?7:0;
+    const x=Math.min(92,Math.max(6,base.x+Math.cos(ang)*r));
+    const y=Math.min(90,Math.max(8,base.y+Math.sin(ang)*r));
+    pinsHTML+=`<a class="pin" href="detail.html?id=${a.id}" style="left:${x}%;top:${y}%">
+      <span class="tt">${a.emoji} ${a.title} · ${a.price===0?'免费':'¥'+a.price}</span>
+      <span class="dot" style="background:${COLORS[a.type]}">${a.emoji}</span>
+    </a>`;
+  });
+});
+map.innerHTML=`<div class="map-river"></div>${pinsHTML}`;
+
+// 图例
+document.getElementById("legend").innerHTML=App.ACTIVITY_TYPES.map(t=>
+  `<span class="lg"><span class="sw" style="background:${COLORS[t.key]}"></span>${t.emoji} ${t.name}</span>`).join("");
+
+// 近处活动列表（复用卡片）
+const near=[...ACTIVITIES].sort((x,y)=>x.distance-y.distance);
+App.renderGrid(document.getElementById("nearby"),near,{reason:a=>App.weatherFitText(a,App.getWeather()).text,fitOk:a=>App.weatherFitText(a,App.getWeather()).ok});
+
+App.bindRipple();
+</script>
+</body>
+</html>
